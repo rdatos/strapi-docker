@@ -1,27 +1,58 @@
 version: '3'
 services:
   strapi:
-    build: . 
+    container_name: strapi
+    build: .
+    image: strapi:latest
+    restart: unless-stopped
+    env_file: .env
     environment:
-      DATABASE_CLIENT: postgres
-      DATABASE_NAME: strapi
-      DATABASE_HOST: postgres
-      DATABASE_PORT: 5432
-      DATABASE_USERNAME: strapi
-      DATABASE_PASSWORD: strapi
+      HOST: ${HOST}
+      PORT: ${PORT}
+      DATABASE_CLIENT: ${DATABASE_CLIENT}
+      DATABASE_HOST: db
+      DATABASE_PORT: ${DATABASE_PORT}
+      DATABASE_NAME: ${DATABASE_NAME}
+      DATABASE_USERNAME: ${DATABASE_USERNAME}
+      DATABASE_PASSWORD: ${DATABASE_PASSWORD}
+      APP_KEYS: ${APP_KEYS}
+      JWT_SECRET: ${JWT_SECRET}
+      API_TOKEN_SALT: ${API_TOKEN_SALT}
+      ADMIN_JWT_SECRET: ${ADMIN_JWT_SECRET}
+      STRAPI_HIDE_STARTUP_MESSAGE: ${STRAPI_HIDE_STARTUP_MESSAGE}
+      STRAPI_TELEMETRY_DISABLED: ${STRAPI_TELEMETRY_DISABLED}
+      NODE_ENV: ${NODE_ENV}
     volumes:
-      - ./app:/srv/app
+      - ./app/config:/opt/app/config
+      - ./app/src:/opt/app/src
+      - ./app/package.json:/opt/package.json
+      - ./app/yarn.lock:/opt/yarn.lock
+      - ./app/public/uploads:/opt/app/public/uploads
     ports:
       - '1337:1337'
+    networks:
+      - strapi
     depends_on:
-      - postgres
+      - db
     command: ['yarn', 'develop']
 
-  postgres:
-    image: postgres
+  db:
+    container_name: db
+    image: postgres:14-alpine
+    restart: unless-stopped
+    env_file: .env
     environment:
-      POSTGRES_DB: strapi
-      POSTGRES_USER: strapi
-      POSTGRES_PASSWORD: strapi
+      POSTGRES_DB: ${DATABASE_NAME}
+      POSTGRES_USER: ${DATABASE_USERNAME}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD}
     volumes:
       - ./data:/var/lib/postgresql/data
+    ports:
+      - '5432:5432'
+    networks:
+      - strapi
+
+networks:
+  strapi:
+    name: strapi
+    driver: bridge
